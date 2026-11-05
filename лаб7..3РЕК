@@ -1,0 +1,130 @@
+/*Lab7.3
+Перепелця Ілона
+Лабораторна рообота 7.3
+Рекурсивний спосіб
+Варіант 11*/
+#include <iostream>
+#include <iomanip>
+#include <cstdlib>
+#include <ctime>
+#include <cmath>
+#include <cassert>
+
+using namespace std;
+
+// Прототипи функцій
+void CreateRow(int** a, const int rowNo, const int N, const int Low, const int High, int colNo = 0);
+void CreateRows(int** a, const int K, const int N, const int Low, const int High, int rowNo = 0);
+void PrintRow(int** a, const int rowNo, const int N, int colNo = 0);
+void PrintRows(int** a, const int K, const int N, int rowNo = 0);
+
+double RowSumRec(int** a, const int rowNo, const int N, int colNo = 0);
+int CountRowsWithMeanLessRec(int** a, const int K, const int N, const double threshold, int rowNo = 0);
+
+void EliminateRowRec(int** a, const int pivotRow, const int targetRow, const int N, const double factor, int colNo);
+void EliminateColumnRec(int** a, const int pivotRow, const int targetRow, const int K, const int N);
+void ToTriangularRec(int** a, const int K, const int N, int pivotIndex = 0);
+
+void TestRec();
+
+int main() {
+    srand((unsigned)time(NULL));
+
+    // Запуск unit-тесту
+    TestRec();
+    cout << "Unit test passed successfully!\n\n";
+
+    int k = 4, n = 4;
+    int** a = new int* [k];
+    for (int i = 0; i < k; i++) a[i] = new int[n];
+
+    CreateRows(a, k, n, -5, 10);
+
+    cout << "Original Matrix (" << k << "x" << n << "):\n";
+    PrintRows(a, k, n);
+
+    double threshold = 2.5;
+    int count = CountRowsWithMeanLessRec(a, k, n, threshold);
+    cout << "\nNumber of rows with average < " << threshold << ": " << count << "\n";
+
+    ToTriangularRec(a, k, n);
+    cout << "\nTriangular Matrix:\n";
+    PrintRows(a, k, n);
+
+    for (int i = 0; i < k; i++) delete[] a[i];
+    delete[] a;
+
+    return 0;
+}
+
+// Рекурсивна генерація масиву
+void CreateRow(int** a, const int rowNo, const int N, const int Low, const int High, int colNo) {
+    a[rowNo][colNo] = Low + rand() % (High - Low + 1);
+    if (colNo < N - 1) CreateRow(a, rowNo, N, Low, High, colNo + 1);
+}
+
+void CreateRows(int** a, const int K, const int N, const int Low, const int High, int rowNo) {
+    CreateRow(a, rowNo, N, Low, High);
+    if (rowNo < K - 1) CreateRows(a, K, N, Low, High, rowNo + 1);
+}
+
+// Рекурсивне виведення масиву
+void PrintRow(int** a, const int rowNo, const int N, int colNo) {
+    cout << setw(6) << a[rowNo][colNo];
+    if (colNo < N - 1) PrintRow(a, rowNo, N, colNo + 1);
+    else cout << endl;
+}
+
+void PrintRows(int** a, const int K, const int N, int rowNo) {
+    PrintRow(a, rowNo, N);
+    if (rowNo < K - 1) PrintRows(a, K, N, rowNo + 1);
+}
+
+// Обчислення суми рядка та підрахунок (Рекурсивно)
+double RowSumRec(int** a, const int rowNo, const int N, int colNo) {
+    if (colNo >= N) return 0;
+    return a[rowNo][colNo] + RowSumRec(a, rowNo, N, colNo + 1);
+}
+
+int CountRowsWithMeanLessRec(int** a, const int K, const int N, const double threshold, int rowNo) {
+    if (rowNo >= K) return 0;
+    int current = ((RowSumRec(a, rowNo, N) / N) < threshold) ? 1 : 0;
+    return current + CountRowsWithMeanLessRec(a, K, N, threshold, rowNo + 1);
+}
+
+// Перетворення до трикутного вигляду (Рекурсивно)
+void EliminateRowRec(int** a, const int pivotRow, const int targetRow, const int N, const double factor, int colNo) {
+    if (colNo >= N) return;
+    a[targetRow][colNo] = static_cast<int>(round(a[targetRow][colNo] - factor * a[pivotRow][colNo]));
+    EliminateRowRec(a, pivotRow, targetRow, N, factor, colNo + 1);
+}
+
+void EliminateColumnRec(int** a, const int pivotRow, const int targetRow, const int K, const int N) {
+    if (targetRow >= K) return;
+    if (a[pivotRow][pivotRow] != 0 && a[targetRow][pivotRow] != 0) {
+        double factor = (double)a[targetRow][pivotRow] / a[pivotRow][pivotRow];
+        EliminateRowRec(a, pivotRow, targetRow, N, factor, pivotRow);
+    }
+    EliminateColumnRec(a, pivotRow, targetRow + 1, K, N);
+}
+
+void ToTriangularRec(int** a, const int K, const int N, int pivotIndex) {
+    int minDim = (K < N) ? K : N;
+    if (pivotIndex >= minDim) return;
+
+    EliminateColumnRec(a, pivotIndex, pivotIndex + 1, K, N);
+    ToTriangularRec(a, K, N, pivotIndex + 1);
+}
+
+// Unit-тест
+void TestRec() {
+    int k = 2, n = 3;
+    int** t = new int* [k];
+    t[0] = new int[n] {1, 2, 3}; // середнє = 2.0
+    t[1] = new int[n] {4, 5, 6}; // середнє = 5.0
+
+    assert(CountRowsWithMeanLessRec(t, k, n, 3.0) == 1);
+
+    for (int i = 0; i < k; i++) delete[] t[i];
+    delete[] t;
+}
